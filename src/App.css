@@ -24,14 +24,54 @@
   color: white;
 }
 
+.hero-element {
+  margin: 30px;
+  border: 1px #282c34 solid;
+  border-radius: 14px;
+  padding: 15px;
+  font-family: 'Courier New', Courier, monospace;
+  background-color: aliceblue;
+  color: #282c34;
+  font-weight: 600;
+}
+
+h3 {
+  font-weight: 800;
+  font-style: italic;
+  color: rgb(12, 44, 44);
+  padding: 5px;
+  max-width: fit-content;
+}
+
+.sub-element{
+  border-top: 0.5px #282c34 dotted;
+  padding-bottom: 15px;
+}
+
+.multiselect-div{
+  margin-top: 10px;
+  max-width: fit-content;
+}
+
+.enddate-div{
+  max-width: fit-content;
+  padding: 12px;
+  border: 1px black solid;
+}
 .App-link {
   color: #61dafb;
+}
+
+.day-heading {
+  display: flex;
+  justify-content: space-evenly;
 }
 
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
