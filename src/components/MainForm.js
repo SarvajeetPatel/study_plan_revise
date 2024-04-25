@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import BooksList from './BooksList'
 import { useFormik } from 'formik'
 import Swal from 'sweetalert2'
@@ -6,16 +6,16 @@ import Multiselect from 'multiselect-react-dropdown'
 import TimingsSlot from './TimingsSlot'
 import DatePicker from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
+import { v4 as uuid } from 'uuid'
 
 function MainForm() {
     let sum = 0;
-    const [flag, setFlag] = useState(0)
-    const [words, setWords] = useState(0)
+    let calculatedTime = 0, hoursDiff, minsDiff;
     const DaysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
     const { values, handleSubmit, handleChange, setFieldValue } = useFormik({
         initialValues: {
-            id: '',
+            id: uuid().slice(0, 8),
             name: '',
             books: [{ book_id: '', chapters: [] }],
             timing: { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
@@ -24,36 +24,39 @@ function MainForm() {
             created_date: new Date()
         },
         onSubmit: (values) => {
-            const existingData = JSON.parse(localStorage.getItem('')) || []
-            const nameCheck = existingData.filter(item => item.name === values.name) || []
-            if (nameCheck.length > 0) {
+            if (values.name) {
+                const existingData = JSON.parse(localStorage.getItem('')) || []
+                const nameCheck = existingData.filter(item => item.name === values.name) || []
+                if (nameCheck.length > 0) {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Oops...",
+                        text: "PLAN ALREADY EXISTS!",
+                        footer: '<a href="#">Why do I have this issue?</a>'
+                    })
+                } else {
+                    Swal.fire({
+                        position: "top-end",
+                        icon: "success",
+                        title: "Booked successfully!",
+                        showConfirmButton: false,
+                        timer: 1000
+                    })
+                    existingData.push(values)
+                    localStorage.setItem('bookingDetails', JSON.stringify(existingData))
+                }
+            }
+            else {
                 Swal.fire({
                     icon: "error",
                     title: "Oops...",
-                    text: "USER HAS ALREADY APPEARED THE EXAM!",
+                    text: "PLEASE ENTER PLAN TITLE!",
                     footer: '<a href="#">Why do I have this issue?</a>'
                 })
-            } else {
-                Swal.fire({
-                    position: "top-end",
-                    icon: "success",
-                    title: "Booked successfully!",
-                    showConfirmButton: false,
-                    timer: 1000
-                })
-                existingData.push(values)
-                localStorage.setItem('bookingDetails', JSON.stringify(existingData))
             }
             console.log(values)
         }
     })
-
-    useEffect(() => {
-        values.books.map(nbooks => (
-            nbooks.chapters.forEach(chapter => sum += chapter.no_of_words)
-        ))
-        setWords(sum)
-    }, [values.books])
 
     const handleAddBook = (e, index) => {
         const tempBooks = values.books
@@ -82,26 +85,34 @@ function MainForm() {
             values.timing[i][index].start = value
         } else if (name === 'end') {
             values.timing[i][index].end = value
-            setFlag(prev => prev + 1)
         }
         setFieldValue('timing', values.timing)
     }
 
-
-    let calculatedTime = 0, hoursDiff, minsDiff;
-    function outputTime() {
-        let userChoosenDate, userChoosenDay, userChoosenMonth, userChoosenYear
-        let minsRequired = (words / 50)
-        // let totalDayHours = 0;
-        // let totalDayMins = 0;
-        if (values.start_date) {
+    let userChoosenDate, userChoosenDay, userChoosenMonth, userChoosenYear, minsRequired = 0
+    useEffect(() => {
+        if (values?.start_date) {
+            // eslint-disable-next-line
             userChoosenDay = values?.start_date?.getDay()
+            // eslint-disable-next-line
             userChoosenDate = values?.start_date?.getDate()
+            // eslint-disable-next-line
             userChoosenMonth = values?.start_date?.getMonth()
+            // eslint-disable-next-line
             userChoosenYear = values?.start_date?.getFullYear()
-            console.log(values.timing[userChoosenDay], 'userrrr')
+        }
+        values?.books?.map(nbooks => (
+            // eslint-disable-next-line
+            nbooks.chapters.forEach(chapter => sum += chapter.no_of_words)
+        ))
+        // eslint-disable-next-line
+        minsRequired = sum / 50
+        outputTime()
+    }, [values.timing, values.books, values.start_date])
 
-            if (values.timing[userChoosenDay].length > 0) {
+    function outputTime() {
+        if (values?.start_date) {
+            if (values.timing[userChoosenDay].length > 0 && minsRequired > 0) {
                 values.timing[userChoosenDay].map(userTime => {
                     let userStart = userTime.start.split(' ')
                     let userEnd = userTime.end.split(' ')
@@ -123,12 +134,11 @@ function MainForm() {
                         }
                     }
                     calculatedTime = calculatedTime + (hoursDiff * 60) + minsDiff
-                    return 0;
+                    minsRequired = minsRequired - calculatedTime
+                    return true
                 })
-                console.log(calculatedTime)
             }
-            if (minsRequired - calculatedTime > 0) {
-                minsRequired = minsRequired - calculatedTime
+            if (minsRequired > 0) {
                 if (userChoosenDay === 6) {
                     userChoosenDay = 0;
                 }
@@ -151,17 +161,11 @@ function MainForm() {
                 outputTime();
             }
             else {
-                var finalDate = new Date(userChoosenYear, userChoosenMonth, userChoosenDate);
-                console.log(finalDate, 'date')
-                return finalDate;
+                setFieldValue('end_date', `${userChoosenDate}/${userChoosenMonth + 1}/${userChoosenYear}`)
+                return true;
             }
         }
     }
-
-    useEffect(() => {
-        let calculatedEndDate = outputTime()
-        setFieldValue('end_date', calculatedEndDate)
-    }, [flag])
 
     return (
         <>
@@ -243,7 +247,7 @@ function MainForm() {
                     <div>
                         Start Date <DatePicker selected={values.start_date} minDate={new Date()} onChange={(date) => setFieldValue('start_date', date)} showIcon />
                         &nbsp; &nbsp; &nbsp;
-                        End Date <div className='enddate-div'> {values?.end_date} </div>
+                        End Date {values?.end_date && <div className='enddate-div'> {values?.end_date} </div>}
                     </div>
                 </div>
 
