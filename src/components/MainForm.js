@@ -9,8 +9,9 @@ import "react-datepicker/dist/react-datepicker.css"
 import { v4 as uuid } from 'uuid'
 
 function MainForm() {
-    let sum = 0;
-    let calculatedTime = 0, hoursDiff, minsDiff;
+    let sum = 0
+    let calculatedTime = 0, hoursDiff, minsDiff
+    let userChoosenDate, userChoosenDay, userChoosenMonth, userChoosenYear, minsRequired = 0
     const DaysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
     const { values, handleSubmit, handleChange, setFieldValue } = useFormik({
@@ -25,13 +26,13 @@ function MainForm() {
         },
         onSubmit: (values) => {
             if (values.name) {
-                const existingData = JSON.parse(localStorage.getItem('')) || []
+                const existingData = JSON.parse(localStorage.getItem('bookingDetails')) || []
                 const nameCheck = existingData.filter(item => item.name === values.name) || []
                 if (nameCheck.length > 0) {
                     Swal.fire({
                         icon: "error",
                         title: "Oops...",
-                        text: "PLAN ALREADY EXISTS!",
+                        text: "A PLAN WITH SAME TITLE ALREADY EXISTS!",
                         footer: '<a href="#">Why do I have this issue?</a>'
                     })
                 } else {
@@ -44,6 +45,11 @@ function MainForm() {
                     })
                     existingData.push(values)
                     localStorage.setItem('bookingDetails', JSON.stringify(existingData))
+                    setFieldValue('name', '')
+                    setFieldValue('books', [{ book_id: '', chapters: [] }])
+                    setFieldValue('timing', { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] })
+                    setFieldValue('start_date', '')
+                    setFieldValue('end_date', '')
                 }
             }
             else {
@@ -89,7 +95,6 @@ function MainForm() {
         setFieldValue('timing', values.timing)
     }
 
-    let userChoosenDate, userChoosenDay, userChoosenMonth, userChoosenYear, minsRequired = 0
     useEffect(() => {
         if (values?.start_date) {
             // eslint-disable-next-line
@@ -235,7 +240,7 @@ function MainForm() {
                                             </div>
                                         ))
                                     }
-                                    <button onClick={() => handleTimeSlot(i)}> + </button>
+                                    <button className='timeslot-button' onClick={() => handleTimeSlot(i)}> + </button>
                                 </div>
                             ))
                         }
@@ -244,15 +249,30 @@ function MainForm() {
 
                 <div className='sub-element'>
                     <h3> <u> Duration </u> </h3>
-                    <div>
-                        Start Date <DatePicker selected={values.start_date} minDate={new Date()} onChange={(date) => setFieldValue('start_date', date)} showIcon />
-                        &nbsp; &nbsp; &nbsp;
-                        End Date {values?.end_date && <div className='enddate-div'> {values?.end_date} </div>}
+                    <div className='duration-elements'>
+                        <div> Start Date <DatePicker selected={values.start_date} minDate={new Date()} onChange={(date) => setFieldValue('start_date', date)} showIcon /> </div>
+                        <div className='enddate-elements'>
+                            <div> End Date </div> &nbsp;
+                            <div className='enddate-div'> {values?.end_date} </div>
+                        </div>
                     </div>
                 </div>
 
                 <div>
-                    <button type='submit' onClick={handleSubmit}> SAVE </button>
+                    <button className='save-button' type='submit' onClick={handleSubmit}>
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            width="30"
+                            height="30"
+                            class="icon"
+                        >
+                            <path
+                                d="M22,15.04C22,17.23 20.24,19 18.07,19H5.93C3.76,19 2,17.23 2,15.04C2,13.07 3.43,11.44 5.31,11.14C5.28,11 5.27,10.86 5.27,10.71C5.27,9.33 6.38,8.2 7.76,8.2C8.37,8.2 8.94,8.43 9.37,8.8C10.14,7.05 11.13,5.44 13.91,5.44C17.28,5.44 18.87,8.06 18.87,10.83C18.87,10.94 18.87,11.06 18.86,11.17C20.65,11.54 22,13.13 22,15.04Z"
+                            ></path>
+                        </svg>
+                        <span> SAVE </span>
+                    </button>
                 </div>
             </div>
         </>
