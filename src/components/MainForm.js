@@ -10,7 +10,7 @@ import { v4 as uuid } from 'uuid'
 
 function MainForm() {
     let sum = 0
-    let calculatedTime = 0, hoursDiff, minsDiff
+    let calculatedTime = 0, hoursDiff, minsDiff, count = 0
     let userChoosenDate, userChoosenDay, userChoosenMonth, userChoosenYear, minsRequired = 0
     const DaysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -25,8 +25,8 @@ function MainForm() {
             created_date: new Date()
         },
         onSubmit: (values) => {
+            const existingData = JSON.parse(localStorage.getItem('bookingDetails')) || []
             if (values.name) {
-                const existingData = JSON.parse(localStorage.getItem('bookingDetails')) || []
                 const nameCheck = existingData.filter(item => item.name === values.name) || []
                 if (nameCheck.length > 0) {
                     Swal.fire({
@@ -35,30 +35,71 @@ function MainForm() {
                         text: "A PLAN WITH SAME TITLE ALREADY EXISTS!",
                         footer: '<a href="#">Why do I have this issue?</a>'
                     })
-                } else {
-                    Swal.fire({
-                        position: "top-end",
-                        icon: "success",
-                        title: "Booked successfully!",
-                        showConfirmButton: false,
-                        timer: 1000
-                    })
-                    existingData.push(values)
-                    localStorage.setItem('bookingDetails', JSON.stringify(existingData))
-                    setFieldValue('name', '')
-                    setFieldValue('books', [{ book_id: '', chapters: [] }])
-                    setFieldValue('timing', { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] })
-                    setFieldValue('start_date', '')
-                    setFieldValue('end_date', '')
                 }
             }
-            else {
+            else if (!values.name) {
                 Swal.fire({
                     icon: "error",
                     title: "Oops...",
                     text: "PLEASE ENTER PLAN TITLE!",
                     footer: '<a href="#">Why do I have this issue?</a>'
                 })
+            }
+
+            else if (values.timing) {
+                values.books.map(allBooks => {
+                    if (!allBooks.book_id || allBooks.chapters.length === 0) {
+                        Swal.fire({
+                            icon: "error",
+                            title: "Oops...",
+                            text: "PLEASE COMPLETE BOOKS DATA!",
+                            footer: '<a href="#">Why do I have this issue?</a>'
+                        })
+                    }
+                    return true
+                })
+
+                Object.keys(values.timing).map(timeSelect => {
+                    if (values.timing[timeSelect].length > 0) {
+                        count++
+                    }
+                    return true
+                })
+
+                if (count === 0) {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Oops...",
+                        text: "PLEASE SELECT AT LEAST ONE TIME SLOT!",
+                        footer: '<a href="#">Why do I have this issue?</a>'
+                    })
+                }
+            }
+
+            else if (!values.start_date) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: "PLEASE SELECT START DATE!",
+                    footer: '<a href="#">Why do I have this issue?</a>'
+                })
+            }
+
+            else {
+                Swal.fire({
+                    position: "top-end",
+                    icon: "success",
+                    title: "Booked successfully!",
+                    showConfirmButton: false,
+                    timer: 1000
+                })
+                existingData.push(values)
+                localStorage.setItem('bookingDetails', JSON.stringify(existingData))
+                setFieldValue('name', '')
+                setFieldValue('books', [{ book_id: '', chapters: [] }])
+                setFieldValue('timing', { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] })
+                setFieldValue('start_date', '')
+                setFieldValue('end_date', '')
             }
             console.log(values)
         }
@@ -87,11 +128,7 @@ function MainForm() {
 
     const handleTimeSelect = (e, index, i) => {
         const { name, value } = e.target
-        if (name === 'start') {
-            values.timing[i][index].start = value
-        } else if (name === 'end') {
-            values.timing[i][index].end = value
-        }
+        values.timing[i][index][name] = value
         setFieldValue('timing', values.timing)
     }
 
