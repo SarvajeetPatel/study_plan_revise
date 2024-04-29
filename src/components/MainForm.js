@@ -7,14 +7,15 @@ import TimingsSlot from './TimingsSlot'
 import DatePicker from 'react-datepicker'
 import "react-datepicker/dist/react-datepicker.css"
 import { v4 as uuid } from 'uuid'
+import { FromValidate } from './FormValidate'
 
 function MainForm() {
     let sum = 0
-    let calculatedTime = 0, hoursDiff, minsDiff, count = 0
+    let calculatedTime = 0, hoursDiff, minsDiff
     let userChoosenDate, userChoosenDay, userChoosenMonth, userChoosenYear, minsRequired = 0
     const DaysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
-    const { values, handleSubmit, handleChange, setFieldValue } = useFormik({
+    const { values, handleSubmit, handleChange, setFieldValue, errors } = useFormik({
         initialValues: {
             id: uuid().slice(0, 8),
             name: '',
@@ -26,65 +27,15 @@ function MainForm() {
         },
         onSubmit: (values) => {
             const existingData = JSON.parse(localStorage.getItem('bookingDetails')) || []
-            if (values.name) {
-                const nameCheck = existingData.filter(item => item.name === values.name) || []
-                if (nameCheck.length > 0) {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Oops...",
-                        text: "A PLAN WITH SAME TITLE ALREADY EXISTS!",
-                        footer: '<a href="#">Why do I have this issue?</a>'
-                    })
-                }
-            }
-            else if (!values.name) {
+            const nameCheck = existingData.filter(item => item.name === values.name) || []
+            if (nameCheck.length > 0) {
                 Swal.fire({
                     icon: "error",
                     title: "Oops...",
-                    text: "PLEASE ENTER PLAN TITLE!",
+                    text: "A PLAN WITH SAME TITLE ALREADY EXISTS!",
                     footer: '<a href="#">Why do I have this issue?</a>'
                 })
             }
-
-            else if (values.timing) {
-                values.books.map(allBooks => {
-                    if (!allBooks.book_id || allBooks.chapters.length === 0) {
-                        Swal.fire({
-                            icon: "error",
-                            title: "Oops...",
-                            text: "PLEASE COMPLETE BOOKS DATA!",
-                            footer: '<a href="#">Why do I have this issue?</a>'
-                        })
-                    }
-                    return true
-                })
-
-                Object.keys(values.timing).map(timeSelect => {
-                    if (values.timing[timeSelect].length > 0) {
-                        count++
-                    }
-                    return true
-                })
-
-                if (count === 0) {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Oops...",
-                        text: "PLEASE SELECT AT LEAST ONE TIME SLOT!",
-                        footer: '<a href="#">Why do I have this issue?</a>'
-                    })
-                }
-            }
-
-            else if (!values.start_date) {
-                Swal.fire({
-                    icon: "error",
-                    title: "Oops...",
-                    text: "PLEASE SELECT START DATE!",
-                    footer: '<a href="#">Why do I have this issue?</a>'
-                })
-            }
-
             else {
                 Swal.fire({
                     position: "top-end",
@@ -102,7 +53,9 @@ function MainForm() {
                 setFieldValue('end_date', '')
             }
             console.log(values)
-        }
+        },
+        validationSchema: FromValidate,
+        validateOnChange: false
     })
 
     const handleAddBook = (e, index) => {
@@ -130,6 +83,39 @@ function MainForm() {
         const { name, value } = e.target
         values.timing[i][index][name] = value
         setFieldValue('timing', values.timing)
+    }
+
+    const handleFromDisable = (i, k) => {
+        if (values.timing[i].length > 1) {
+            for (let j = 0; j < values.timing[i].length - 1; j++) {
+                const tempVar = TimingsSlot.findIndex(timer => timer === values.timing[i][j].start)
+                const tempEndVar = TimingsSlot.findIndex(timer => timer === values.timing[i][j].end)
+                if (tempVar <= k && k <= tempEndVar) {
+                    return true;
+                }
+            }
+        }
+        return false
+    }
+
+    const handleToDisable = (i, k) => {
+        let timesOfDay = values.timing[i];
+        const startIndex = TimingsSlot.findIndex(timer => timer === timesOfDay[timesOfDay.length - 1].start)
+        if (startIndex) {
+            if (k <= startIndex) {
+                return true
+            }
+            if (timesOfDay.length > 1) {
+                for (let j = 0; j < timesOfDay.length - 1; j++) {
+                    const element = timesOfDay[j]
+                    const tempStart = TimingsSlot.findIndex(timer => timer === element.start)
+                    if (tempStart > startIndex && k >= tempStart) {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
     }
 
     useEffect(() => {
@@ -208,6 +194,7 @@ function MainForm() {
             }
         }
     }
+    console.log(errors, 'errore', values.timing)
 
     return (
         <>
@@ -216,6 +203,7 @@ function MainForm() {
                 <div className='sub-element'>
                     <h3> <u> Title of your plan </u> </h3>
                     <input type='text' name='name' value={values.name} onChange={handleChange} />
+                    <div> {errors?.name} </div>
                 </div>
 
                 <div className='sub-element'>
@@ -229,22 +217,26 @@ function MainForm() {
                                         <option value={books.id} key={books.id}> {books.name} </option>
                                     ))}
                                 </select>
+                                <div> {errors?.books?.[index]?.book_id} </div>
 
                                 {values.books[index].book_id !== '' &&
-                                    <div className='multiselect-div'>
-                                        <Multiselect options={BooksList.filter(book => book.id === Number(nbooks.book_id))[0]?.chapters}
-                                            selectedValues={values.books[index].chapters}
-                                            onSelect={(selectedList) => setFieldValue(`books[${index}].chapters`, selectedList)}
-                                            onRemove={(selectedList) => setFieldValue(`books[${index}].chapters`, selectedList)}
-                                            showCheckbox
-                                            displayValue="name" />
-                                    </div>
+                                    <>
+                                        <div className='multiselect-div'>
+                                            <Multiselect options={BooksList.filter(book => book.id === Number(nbooks.book_id))[0]?.chapters}
+                                                selectedValues={values.books[index].chapters}
+                                                onSelect={(selectedList) => setFieldValue(`books[${index}].chapters`, selectedList)}
+                                                onRemove={(selectedList) => setFieldValue(`books[${index}].chapters`, selectedList)}
+                                                showCheckbox
+                                                displayValue="name" />
+                                        </div>
+                                        <div> {errors?.books?.[index]?.chapters} </div>
+                                    </>
                                 }
                                 <br />
                             </>
                         ))
                     }
-                    <button type='button' onClick={(e) => handleNewBook(e)}> ADD BOOKS </button>
+                    <button type='button' onClick={(e) => handleNewBook(e)} disabled={values.books.filter(nbooks => !nbooks.book_id || nbooks.chapters.length === 0).length > 0}> ADD BOOKS </button>
                 </div>
 
                 <div className='sub-element'>
@@ -260,18 +252,20 @@ function MainForm() {
                                                 <div>
                                                     <select name='start' onChange={(e) => handleTimeSelect(e, index, i)} defaultValue=''>
                                                         <option value='' disabled={true}> START TIME </option>
-                                                        {TimingsSlot.map((displayTime, i) => (
-                                                            <option value={displayTime} key={i}> {displayTime} </option>
+                                                        {TimingsSlot.map((displayTime, k) => (
+                                                            <option value={displayTime} key={k} disabled={handleFromDisable(i, k)}> {displayTime} </option>
                                                         ))}
                                                     </select>
+                                                    <div> {errors?.timing?.[i]?.[index]?.start} </div>
                                                 </div>
                                                 <div>
                                                     <select name='end' onChange={(e) => handleTimeSelect(e, index, i)} defaultValue=''>
                                                         <option value='' disabled={true}> END TIME </option>
-                                                        {TimingsSlot.map((displayTime, i) => (
-                                                            <option value={displayTime} key={i}> {displayTime} </option>
+                                                        {TimingsSlot.map((displayTime, k) => (
+                                                            <option value={displayTime} key={k} disabled={handleToDisable(i, k)}> {displayTime} </option>
                                                         ))}
                                                     </select>
+                                                    <div> {errors?.timing?.[i]?.[index]?.end} </div>
                                                 </div>
                                                 <br />
                                             </div>
@@ -282,12 +276,14 @@ function MainForm() {
                             ))
                         }
                     </div>
+                    <div> {typeof errors?.timing === 'string' && errors?.timing} </div>
                 </div>
 
                 <div className='sub-element'>
                     <h3> <u> Duration </u> </h3>
                     <div className='duration-elements'>
-                        <div> Start Date <DatePicker selected={values.start_date} minDate={new Date()} onChange={(date) => setFieldValue('start_date', date)} showIcon /> </div>
+                        <div> Start Date <DatePicker selected={values.start_date} minDate={new Date()} onChange={(date) => setFieldValue('start_date', date)} showIcon />
+                            <div> {errors?.start_date} </div></div>
                         <div className='enddate-elements'>
                             <div> End Date </div> &nbsp;
                             <div className='enddate-div'> {values?.end_date} </div>
@@ -311,7 +307,7 @@ function MainForm() {
                         <span> SAVE </span>
                     </button>
                 </div>
-            </div>
+            </div >
         </>
     )
 }
