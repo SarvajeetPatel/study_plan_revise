@@ -131,6 +131,17 @@ h3 {
   border: 1px black solid;
 }
 
+.button-div{
+  display: flex;
+  justify-content: center;
+}
+
+.error-statement{
+  color: #720606;
+  font-size: medium;
+  font-weight: 800;
+}
+
 .App-link {
   color: #61dafb;
 }

@@ -15,7 +15,7 @@ function MainForm() {
     let userChoosenDate, userChoosenDay, userChoosenMonth, userChoosenYear, minsRequired = 0
     const DaysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
-    const { values, handleSubmit, handleChange, setFieldValue, errors } = useFormik({
+    const { values, handleSubmit, handleChange, setFieldValue, errors, touched, initialTouched } = useFormik({
         initialValues: {
             id: uuid().slice(0, 8),
             name: '',
@@ -55,7 +55,9 @@ function MainForm() {
             console.log(values)
         },
         validationSchema: FromValidate,
-        validateOnChange: false
+        validateOnChange: true,
+        validateOnBlur: true,
+        validateOnMount: false
     })
 
     const handleAddBook = (e, index) => {
@@ -77,6 +79,12 @@ function MainForm() {
     const handleTimeSlot = (index) => {
         values.timing?.[index]?.push({ 'start': '', 'end': '' })
         setFieldValue('timing', values.timing)
+    }
+
+    const handleDeleteTimeSlot = (index, k) => {
+        var tempTimings = values.timing
+        tempTimings[k].splice(index, 1)
+        setFieldValue('timing', tempTimings)
     }
 
     const handleTimeSelect = (e, index, i) => {
@@ -161,7 +169,7 @@ function MainForm() {
                             minsDiff = endMins + userStart[0].split(':')[1]
                         }
                     }
-                    calculatedTime = calculatedTime + (hoursDiff * 60) + minsDiff
+                    calculatedTime = (hoursDiff * 60) + minsDiff
                     minsRequired = minsRequired - calculatedTime
                     return true
                 })
@@ -189,12 +197,11 @@ function MainForm() {
                 outputTime();
             }
             else {
-                setFieldValue('end_date', `${userChoosenDate}/${userChoosenMonth + 1}/${userChoosenYear}`)
+                setFieldValue('end_date', `${(userChoosenMonth > 9) ? (userChoosenMonth + 1) : `0${userChoosenMonth + 1}`}/${(userChoosenDate > 9) ? userChoosenDate : `0${userChoosenDate}`}/${userChoosenYear}`)
                 return true;
             }
         }
     }
-    console.log(errors, 'errore', values.timing)
 
     return (
         <>
@@ -203,7 +210,7 @@ function MainForm() {
                 <div className='sub-element'>
                     <h3> <u> Title of your plan </u> </h3>
                     <input type='text' name='name' value={values.name} onChange={handleChange} />
-                    <div> {errors?.name} </div>
+                    <div className='error-statement'> {(touched?.name && errors?.name) ? errors?.name : null} </div>
                 </div>
 
                 <div className='sub-element'>
@@ -217,7 +224,7 @@ function MainForm() {
                                         <option value={books.id} key={books.id}> {books.name} </option>
                                     ))}
                                 </select>
-                                <div> {errors?.books?.[index]?.book_id} </div>
+                                <div className='error-statement'> {(touched?.books?.[index]?.book_id && errors?.books?.[index]?.book_id) ? errors?.books?.[index]?.book_id : null} </div>
 
                                 {values.books[index].book_id !== '' &&
                                     <>
@@ -229,7 +236,7 @@ function MainForm() {
                                                 showCheckbox
                                                 displayValue="name" />
                                         </div>
-                                        <div> {errors?.books?.[index]?.chapters} </div>
+                                        <div className='error-statement'> {(touched?.books?.[index]?.chapters && errors?.books?.[index]?.chapters) ? errors?.books?.[index]?.chapters : null} </div>
                                     </>
                                 }
                                 <br />
@@ -253,37 +260,43 @@ function MainForm() {
                                                     <select name='start' onChange={(e) => handleTimeSelect(e, index, i)} defaultValue=''>
                                                         <option value='' disabled={true}> START TIME </option>
                                                         {TimingsSlot.map((displayTime, k) => (
-                                                            <option value={displayTime} key={k} disabled={handleFromDisable(i, k)}> {displayTime} </option>
+                                                            <option value={displayTime} key={k} disabled={handleFromDisable(i, k)} selected={displayTime === bookTime?.start}> {displayTime} </option>
                                                         ))}
                                                     </select>
-                                                    <div> {errors?.timing?.[i]?.[index]?.start} </div>
+                                                    <div className='error-statement'> {(touched?.timing?.[i]?.[index]?.start && errors?.timing?.[i]?.[index]?.start) ? errors?.timing?.[i]?.[index]?.start : null} </div>
                                                 </div>
                                                 <div>
                                                     <select name='end' onChange={(e) => handleTimeSelect(e, index, i)} defaultValue=''>
                                                         <option value='' disabled={true}> END TIME </option>
                                                         {TimingsSlot.map((displayTime, k) => (
-                                                            <option value={displayTime} key={k} disabled={handleToDisable(i, k)}> {displayTime} </option>
+                                                            <option value={displayTime} key={k} disabled={handleToDisable(i, k)} selected={displayTime === bookTime?.end}> {displayTime} </option>
                                                         ))}
                                                     </select>
-                                                    <div> {errors?.timing?.[i]?.[index]?.end} </div>
+                                                    <div className='error-statement'> {(touched?.timing?.[i]?.[index]?.end && errors?.timing?.[i]?.[index]?.end) ? errors?.timing?.[i]?.[index]?.end : null} </div>
+                                                </div>
+                                                <br />
+                                                <div className='button-div'>
+                                                    <button className='timeslot-button' onClick={() => handleDeleteTimeSlot(index, i)}> - </button>
                                                 </div>
                                                 <br />
                                             </div>
                                         ))
                                     }
-                                    <button className='timeslot-button' onClick={() => handleTimeSlot(i)}> + </button>
+                                    <div className='button-div'>
+                                        <button className='timeslot-button' onClick={() => handleTimeSlot(i)}> + </button>
+                                    </div>
                                 </div>
                             ))
                         }
                     </div>
-                    <div> {typeof errors?.timing === 'string' && errors?.timing} </div>
+                    <div className='error-statement'> {(typeof errors?.timing !== 'object' && !initialTouched?.timing && typeof errors?.timing === 'string') ? errors?.timing : null} </div>
                 </div>
 
                 <div className='sub-element'>
                     <h3> <u> Duration </u> </h3>
                     <div className='duration-elements'>
                         <div> Start Date <DatePicker selected={values.start_date} minDate={new Date()} onChange={(date) => setFieldValue('start_date', date)} showIcon />
-                            <div> {errors?.start_date} </div></div>
+                            <div className='error-statement'> {(touched?.start_date && errors?.start_date) ? errors?.start_date : null} </div></div>
                         <div className='enddate-elements'>
                             <div> End Date </div> &nbsp;
                             <div className='enddate-div'> {values?.end_date} </div>
