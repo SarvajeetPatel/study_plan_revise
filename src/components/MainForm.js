@@ -147,7 +147,8 @@ function MainForm() {
     }, [values.timing, values.books, values.start_date])
 
     function outputTime() {
-        if (values?.start_date) {
+        const findTime = Object.keys(values.timing).filter(tempTime => values.timing[tempTime].length > 0)
+        if (values?.start_date && findTime.length > 0) {
             if (values.timing[userChoosenDay].length > 0 && minsRequired > 0) {
                 values.timing[userChoosenDay].map(userTime => {
                     let userStart = userTime.start.split(' ')
@@ -289,7 +290,7 @@ function MainForm() {
                             ))
                         }
                     </div>
-                    <div className='error-statement'> {(typeof errors?.timing !== 'object' && !initialTouched?.timing && typeof errors?.timing === 'string') ? errors?.timing : null} </div>
+                    <div className='error-statement'> {(typeof errors?.timing !== 'object' && !initialTouched?.timing && touched?.timing && typeof errors?.timing === 'string') ? errors?.timing : null} </div>
                 </div>
 
                 <div className='sub-element'>
